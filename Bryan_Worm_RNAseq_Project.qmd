@@ -1,0 +1,140 @@
+---
+title: "Worm_RNAseq"
+author: "Trevor"
+format: html
+editor: visual
+---
+
+## Setting Up Paths
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+dir <- "salmon"
+samples <- read.csv("salmon_out/sample_info.csv")
+
+# The following creates a vector of pathnames, then names each pathname
+files <- file.path("salmon_out", samples$name, "quant.sf")
+names(files) <- samples$name
+```
+
+## Prepare Keys with  `AnnotationDbi` and Running `tximport`
+
+```{r}
+library(AnnotationDbi)
+library(org.Ce.eg.db)
+library(tximport)
+
+db <- org.Ce.eg.db
+kt <- keytypes(db)
+
+for (x in kt) {
+  k <- keys(db, keytype = x)
+}
+
+k <- keys(db, keytype = "ENSEMBLTRANS")
+tx2gene <- AnnotationDbi::select(db, k, "ENSEMBLTRANS", "ENSEMBLTRANS")
+
+ENSEMBLTRANS <- tx2gene$ENSEMBLTRANS
+TRANS <- tx2gene$ENSEMBLTRANS
+keep_trans <- data.frame(ENSEMBLTRANS, TRANS)
+
+txi <- tximport(files, type = "salmon", tx2gene = keep_trans)
+
+write.csv(txi$counts, 'cts.csv')
+save(txi, file='txi_bryanSeq.RData')
+
+```
+
+## Create `DESeqDataSet` and Running `DESeq2`
+
+```{r}
+library(DESeq2)
+
+dds <- DESeqDataSetFromTximport(txi, samples, design = ~ condition)
+dds$condition <- relevel(dds$condition, ref = "WT")
+
+
+# Run DESeq
+dds <- DESeq(dds)
+
+# Save results
+res <- results(dds)
+
+stop_res <- results(dds, name = "condition_rsp.2_phosphodead_vs_WT")
+phosphomimetic_res <- results(dds, name = "condition_rsp.2_STOP_vs_WT")
+phosphodead_res <- results(dds, name = "condition_rsp.2_phosphomimetic_vs_WT")
+
+```
+
+Some useful commands...
+
+`resultsNames(dds)` will list all the comparisons
+
+`res[order(res$pvalue),]` will sort results by p-value
+
+`sum(res$padj < 0.1, na.rm = TRUE)` How many with p-value less than 0.1?
+
+`results(dds, alpha = 0.05)` What about with 0.05 alpha cutoff?
+
+`baseMean` - The average of the normalized count values dividing by size factors taken over all samples in the data set
+
+`log2FoldChange`  - The effect size estimate, how much gene expression seems to have changed due to treatment compared to WT. logbase2 scale, ie. if log2FoldChange = 1.5, the increase in gene expression is increased by a multiplicative factor of 2\^1.5, or 2.82
+
+## MA Plots 
+
+```{r}
+plotMA(phosphomimetic_res, ylim = c(-5, 5))
+plotMA(phosphodead_res, ylim = c(-2, 2))
+plotMA(stop_res, ylim = c(-2, 2))
+```
+
+## PCA Plot
+
+```{r}
+# Perform a variance stabilized transformation
+vsd <- vst(dds)
+
+plotPCA(
+  vsd,
+  intgroup = "condition"
+)
+```
+
+## Heatmap
+
+```{r}
+library(pheatmap)
+library(RColorBrewer)
+
+
+variances <- apply(assay(varianceStabilizingTransformation(dds)), 1, var)
+top_50_gene_var_names <- names(sort(variances, decreasing = TRUE)[1:50])
+top_50_gene_variances <- assay(dds)[top_50_gene_var_names,]
+
+pheatmap(top_50_gene_var_names, cluster_rows = TRUE, cluster_cols = TRUE, color = colorRampPalette(c("blue", "white", "red"))(50),
+         fontsize_row = 5,
+         fontsize_col = 8)
+
+```
+
+## Volcano Plot
+
+```{r}
+library(EnhancedVolcano)
+
+EnhancedVolcano(phosphodead_res,
+                lab = rownames(res),
+                x = 'log2FoldChange', 
+                y = 'pvalue')
+
+EnhancedVolcano(phosphomimetic_res,
+                lab = rownames(res),
+                x = 'log2FoldChange',
+                y = 'pvalue')
+
+EnhancedVolcano(stop_res,
+                lab = rownames(res),
+                x = 'log2FoldChange',
+                y = 'pvalue')
+```
