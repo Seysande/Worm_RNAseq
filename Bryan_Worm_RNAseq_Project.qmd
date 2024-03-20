@@ -18,7 +18,7 @@ files <- file.path("salmon_out", samples$name, "quant.sf")
 names(files) <- samples$name
 ```
 
-## Prepare Keys with  `AnnotationDbi` and Running `tximport`
+## Prepare Keys with `AnnotationDbi` and Running `tximport`
 
 ```{r}
 library(AnnotationDbi)
@@ -79,9 +79,9 @@ Some useful commands...
 
 `baseMean` - The average of the normalized count values dividing by size factors taken over all samples in the data set
 
-`log2FoldChange`  - The effect size estimate, how much gene expression seems to have changed due to treatment compared to WT. logbase2 scale, ie. if log2FoldChange = 1.5, the increase in gene expression is increased by a multiplicative factor of 2\^1.5, or 2.82
+`log2FoldChange` - The effect size estimate, how much gene expression seems to have changed due to treatment compared to WT. logbase2 scale, ie. if log2FoldChange = 1.5, the increase in gene expression is increased by a multiplicative factor of 2\^1.5, or 2.82
 
-## MA Plots 
+## MA Plots
 
 ```{r}
 plotMA(phosphomimetic_res, ylim = c(-5, 5))
@@ -112,6 +112,11 @@ variances <- apply(assay(varianceStabilizingTransformation(dds)), 1, var)
 top_50_gene_var_names <- names(sort(variances, decreasing = TRUE)[1:50])
 top_50_gene_variances <- assay(dds)[top_50_gene_var_names,]
 
+
+
+
+
+
 pheatmap(top_50_gene_var_names, cluster_rows = TRUE, cluster_cols = TRUE, color = colorRampPalette(c("blue", "white", "red"))(50),
          fontsize_row = 5,
          fontsize_col = 8)
@@ -126,15 +131,44 @@ library(EnhancedVolcano)
 EnhancedVolcano(phosphodead_res,
                 lab = rownames(res),
                 x = 'log2FoldChange', 
-                y = 'pvalue')
+                y = 'pvalue',
+                title = 'Phosphodead vs WT',
+                labSize = 3, 
+                border = 'full'
+                )
 
 EnhancedVolcano(phosphomimetic_res,
                 lab = rownames(res),
                 x = 'log2FoldChange',
-                y = 'pvalue')
+                y = 'pvalue',
+                title = 'Phosphomimetic vs WT',
+                labSize = 3,
+                border = 'full')
 
 EnhancedVolcano(stop_res,
                 lab = rownames(res),
                 x = 'log2FoldChange',
-                y = 'pvalue')
+                y = 'pvalue',
+                title = 'Stop vs WT',
+                labSize = 3,
+                border = 'full')
+
+```
+
+Work on making volcano plot nicer,
+
+Cluster profiler,
+
+Gene enrichment - list of DE genes, sort by logFoldChange, put most D expressed genes on top, panther and feed
+
+Gene set enrichment analysis - ranked list of genes, scores of groups, which sets enriched at top or bottom of list, more holistic approach. GSEA website, FGSEA (easier)
+
+<https://www.gsea-msigdb.org/gsea/msigdb/>
+
+<https://geneontology.org/>
+
+## Gene Ontology 
+
+```{r}
+
 ```
