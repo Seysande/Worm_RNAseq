@@ -61,9 +61,9 @@ dds <- DESeq(dds)
 # Save results
 res <- results(dds)
 
-stop_res <- results(dds, name = "condition_rsp.2_phosphodead_vs_WT")
-phosphomimetic_res <- results(dds, name = "condition_rsp.2_STOP_vs_WT")
-phosphodead_res <- results(dds, name = "condition_rsp.2_phosphomimetic_vs_WT")
+stop_res <- results(dds, name = "condition_rsp.2_STOP_vs_WT")
+phosphomimetic_res <- results(dds, name = "condition_rsp.2_phosphomimetic_vs_WT")
+phosphodead_res <- results(dds, name = "condition_rsp.2_phosphodead_vs_WT")
 
 ```
 
@@ -155,8 +155,6 @@ EnhancedVolcano(stop_res,
 
 ```
 
-Work on making volcano plot nicer,
-
 Cluster profiler,
 
 Gene enrichment - list of DE genes, sort by logFoldChange, put most D expressed genes on top, panther and feed
@@ -167,8 +165,70 @@ Gene set enrichment analysis - ranked list of genes, scores of groups, which set
 
 <https://geneontology.org/>
 
-## Gene Ontology 
+## 
+
+# Analysis By Aggregating Transcripts into Genes
 
 ```{r}
+expression_data <- read.csv("cts.csv", header = TRUE, row.names = 1)
+gene_names <- sub("\\..*", "", rownames(expression_data))
+gene_expression = aggregate(expression_data, by=list(gene_names), FUN = sum)
+
+
+colnames(gene_expression)[1] <- "Gene"
+
+
+
+dds_2 = DESeqDataSetFromMatrix(countData = round(gene_expression),
+                               colData = samples,
+                               design = ~condition)
+dds_2$condition <- relevel(dds_2$condition, ref = "WT")
+
+dds_2 <- DESeq(dds_2)
+res_2 <- results(dds_2)
+
+stop_res_2 <- results(dds_2, name = "condition_rsp.2_STOP_vs_WT")
+phosphomimetic_res_2 <- results(dds_2, name = "condition_rsp.2_phosphomimetic_vs_WT")
+phosphodead_res_2 <- results(dds_2, name = "condition_rsp.2_phosphodead_vs_WT")
 
 ```
+
+NEED TO FIX, NO ROWNAMES
+
+```{r}
+expression_data <- read.csv("cts.csv", header = TRUE, row.names = 1)
+gene_names <- sub("\\..*", "", rownames(expression_data))
+gene_expression = aggregate(expression_data, by=list(gene_names), FUN = sum)
+```
+
+```{r}
+plotMA(phosphomimetic_res_2, ylim = c(-5, 5))
+plotMA(phosphodead_res_2, ylim = c(-2, 2))
+plotMA(stop_res_2, ylim = c(-2, 2))
+```
+
+```{r}
+library(pheatmap)
+library(RColorBrewer)
+
+
+vsd = vst(dds_2, blind = FALSE)
+variance= rowVars(assay(vsd))
+
+top_50_genes <- names(sort(variance, decreasing=TRUE)[1:50])
+```
+
+## Gene Ontology Using `fgsea`
+
+Takes two arguments:
+
+1\) Pathways a list of gene sets or pathways to check
+
+2\) Stats - named vector of genes of interest to perform GSEA on. Genes names must be the same as the ones in the pathways. (gene IDs or Ensemble IDs)
+
+```{r}
+library(fgsea)
+
+
+```
+
