@@ -199,18 +199,72 @@ plotMA(phosphodead_res_2, ylim = c(-2, 2))
 plotMA(stop_res_2, ylim = c(-2, 2))
 ```
 
+## Gene Analysis PCA Plot
+
+```{r}
+# Perform a variance stabilized transformation
+vsd_2 <- vst(dds_2)
+
+plotPCA(
+  vsd_2,
+  intgroup = "condition"
+)
+```
+
 ```{r}
 library(pheatmap)
 library(RColorBrewer)
 
 
-vsd = vst(dds_2, blind = FALSE)
-variance= rowVars(assay(vsd))
+vsd_2 = vst(dds_2, blind = FALSE)
+variance= rowVars(assay(vsd_2))
 
 top_50_genes <- names(sort(variance, decreasing=TRUE)[1:50])
+expression_data_top_50 <- assay(vsd_2)[top_50_genes, ]
+
+heatmap= pheatmap(expression_data_top_50,
+          cluster_rows = TRUE,
+          cluster_cols = TRUE,
+          scale = 'row',
+          main = "Heatmap",
+          fontsize_row = 5)
+
+ggsave("test.png", plot=heatmap)
+
 ```
 
-## Gene Ontology Using `fgsea`
+### Volcano Plots
+
+```{r}
+library(EnhancedVolcano)
+
+EnhancedVolcano(phosphodead_res_2,
+                lab = rownames(res_2),
+                x = 'log2FoldChange', 
+                y = 'pvalue',
+                title = 'Phosphodead vs WT',
+                labSize = 3, 
+                border = 'full'
+                )
+
+EnhancedVolcano(phosphomimetic_res_2,
+                lab = rownames(res_2),
+                x = 'log2FoldChange',
+                y = 'pvalue',
+                title = 'Phosphomimetic vs WT',
+                labSize = 3,
+                border = 'full')
+
+EnhancedVolcano(stop_res_2,
+                lab = rownames(res_2),
+                x = 'log2FoldChange',
+                y = 'pvalue',
+                title = 'Stop vs WT',
+                labSize = 3,
+                border = 'full')
+```
+
+### Gene Ontology Using `fgsea`
 
 Takes two arguments:
 
