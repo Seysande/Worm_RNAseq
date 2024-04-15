@@ -172,14 +172,14 @@ Gene set enrichment analysis - ranked list of genes, scores of groups, which set
 ```{r}
 expression_data <- read.csv("cts.csv", header = TRUE, row.names = 1)
 gene_names <- sub("\\..*", "", rownames(expression_data))
+
 gene_expression = aggregate(expression_data, by=list(gene_names), FUN = sum)
+gene_expression_fixed = gene_expression[,-1]
+rownames(gene_expression_fixed) <- gene_expression[, 1]
 
 
-colnames(gene_expression)[1] <- "Gene"
 
-
-
-dds_2 = DESeqDataSetFromMatrix(countData = round(gene_expression),
+dds_2 = DESeqDataSetFromMatrix(countData = round(gene_expression_fixed),
                                colData = samples,
                                design = ~condition)
 dds_2$condition <- relevel(dds_2$condition, ref = "WT")
@@ -191,14 +191,6 @@ stop_res_2 <- results(dds_2, name = "condition_rsp.2_STOP_vs_WT")
 phosphomimetic_res_2 <- results(dds_2, name = "condition_rsp.2_phosphomimetic_vs_WT")
 phosphodead_res_2 <- results(dds_2, name = "condition_rsp.2_phosphodead_vs_WT")
 
-```
-
-NEED TO FIX, NO ROWNAMES
-
-```{r}
-expression_data <- read.csv("cts.csv", header = TRUE, row.names = 1)
-gene_names <- sub("\\..*", "", rownames(expression_data))
-gene_expression = aggregate(expression_data, by=list(gene_names), FUN = sum)
 ```
 
 ```{r}
@@ -231,4 +223,3 @@ library(fgsea)
 
 
 ```
-
