@@ -170,7 +170,7 @@ Gene set enrichment analysis - ranked list of genes, scores of groups, which set
 # Analysis By Aggregating Transcripts into Genes
 
 ```{r}
-expression_data <- read.csv("cts.csv", header = TRUE, row.names = 1)
+expression_data <- read.csv("cts.csv", header = TRUE, row.names = 1, stringsAsFactors = FALSE)
 gene_names <- sub("\\..*", "", rownames(expression_data))
 
 gene_expression = aggregate(expression_data, by=list(gene_names), FUN = sum)
@@ -186,6 +186,10 @@ dds_2$condition <- relevel(dds_2$condition, ref = "WT")
 
 dds_2 <- DESeq(dds_2)
 res_2 <- results(dds_2)
+
+
+write.csv(res_2, file = "DESeq_Results.csv", row.names=FALSE)
+
 
 stop_res_2 <- results(dds_2, name = "condition_rsp.2_STOP_vs_WT")
 phosphomimetic_res_2 <- results(dds_2, name = "condition_rsp.2_phosphomimetic_vs_WT")
@@ -274,6 +278,18 @@ Takes two arguments:
 
 ```{r}
 library(fgsea)
+library(tidyverse)
+library(biomaRt)
+res_22 <- read_csv("DESeq_Results.csv")
 
+mart <- useMart(host = "metazoa.ensembl.org",
+                         biomart = "metazoa_mart",
+                         dataset = "celegans_eg_gene")
+
+bm <- getBM(attributes=c("ensembl_gene_id"), mart=mart) %>%
+  distinct() %>%
+  as_data_frame() %>%
+  na.omit()
+bm
 
 ```
